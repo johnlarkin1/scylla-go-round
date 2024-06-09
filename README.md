@@ -1,3 +1,5 @@
+<p align="center"><img src="https://github.com/johnlarkin1/scylla-go-round/assets/18692931/6a8d1bb8-4c5d-4fcb-b58f-a4e22b2e164f" alt="scylla-go-round" width="400" /></p>
+
 # Scylla-Go-Round
 
 Welcome to Scylla-Go-Round! Spin up your ScyllaDB schemas into Go types with ease and style. This CLI tool is your handy companion in bridging the gap between schema design and Go implementation, ensuring your applications are running smoothly with the latest data structures.
