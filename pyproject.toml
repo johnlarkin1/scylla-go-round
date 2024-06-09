@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "scylla-go-round"
+version = "0.1.0"
+description = "A CLI tool to generate Go types from ScyllaDB or Cassandra schemas"
+authors = ["John Larkin <john@johnjlarkin.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+cassandra-driver = "^3.29.1"
+python-dotenv = "^1.0.1"
+
+
+[tool.poetry.scripts]
+scyllago = "scylla_go_round.main:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

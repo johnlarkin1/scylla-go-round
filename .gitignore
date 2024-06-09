@@ -1,0 +1,9 @@
+# Ignore specific .env file 
+.env
+
+# No need for these packages 
+dist/
+output/
+
+# pycache not needed
+scylla_go_round/__pycache__
