@@ -18,7 +18,8 @@ def connect_to_scylla(
 
 def parse_schema(tables: list[TableDefinition]) -> list[Table]:
     column_pattern = re.compile(
-        r"^\s*(\w+)\s+((?:[\w\s]+<(?:[^<>]|<[^<>]*>)*>|[\w\s]+)(?:,|$))", re.MULTILINE
+        r"^\s*(\w+)\s+((?:[\w\s]+<[^<>]*(?:<[^<>]+(?:<[^<>]*>)*[^<>]*>)*>|\w+)(?:,|$))",
+        re.MULTILINE,
     )
     primary_key_pattern = re.compile(r"PRIMARY KEY\s*\(([^)]+)\)", re.IGNORECASE)
 
@@ -41,7 +42,7 @@ def parse_schema(tables: list[TableDefinition]) -> list[Table]:
         for column_match in column_pattern.finditer(columns_data):
             column_name = column_match.group(1)
             # Our regex pulls the comma, so let's cut that out
-            column_type = column_match.group(2).strip()[:-1]
+            column_type = column_match.group(2).strip().rstrip(",")
             primary = column_name in primary_keys
             columns.append(
                 Column(name=column_name, col_type=column_type, primary=primary)

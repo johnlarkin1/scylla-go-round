@@ -30,6 +30,7 @@ def generate_entities_go(tables: list[TableDefinition], filename="entities.go") 
                 continue
 
             file.write(f"type {format_go_identifier(table.name)} struct {{\n")
+
             for column in table.columns:
                 go_type = map_cql_type_to_go(column.col_type)
                 go_identifier = format_go_identifier(column.name)
@@ -47,6 +48,7 @@ def map_cql_type_to_go(cql_type):
     For example:
     - "map<text, decimal>" becomes "map[string]*inf.Dec" in Go.
     - "set<text>" becomes "[]string" in Go.
+    - "list<map<text, decimal>" recurses back to the map case
     """
     # Cleanse our cql_type... this type:
     #   Set(TEXT, frozen) NOT NULL,
@@ -61,6 +63,7 @@ def map_cql_type_to_go(cql_type):
     base_type_mapping = {
         "text": "string",
         "int": "int",
+        "uuid": "uuid.UUID",
         "float": "float32",
         "double": "float64",
         "bigint": "int64",
@@ -70,21 +73,38 @@ def map_cql_type_to_go(cql_type):
         "timeuuid": "uuid.UUID",
     }
 
-    # Extend the pattern to include set types
-    complex_type_pattern = re.compile(r"(map|set)<(.+?)(?:,\s*(.+?))?>$", re.IGNORECASE)
+    complex_type_pattern = re.compile(r"^(map|set|list)<(.+)>$", re.IGNORECASE)
 
-    def handle_complex_type(match):
-        collection_type, key_type, value_type = match.groups()
-        go_key_type = base_type_mapping.get(key_type, "interface{}")
-        go_value_type = base_type_mapping.get(value_type, "interface{}")
+    def handle_complex_type(cql_subtype):
+        sub_type_match = complex_type_pattern.match(cql_subtype)
+        if sub_type_match:
+            collection_type, inner_types = sub_type_match.groups()
+            inner_types = split_complex_types(inner_types)
+            if collection_type.lower() == "map":
+                go_key_type = map_cql_type_to_go(inner_types[0])
+                go_value_type = map_cql_type_to_go(inner_types[1])
+                return f"map[{go_key_type}]{go_value_type}"
+            elif collection_type.lower() == "set":
+                go_value_type = map_cql_type_to_go(inner_types[0])
+                return f"[]{go_value_type}"
+            elif collection_type.lower() == "list":
+                go_value_type = map_cql_type_to_go(inner_types[0])
+                return f"[]{go_value_type}"
+        return base_type_mapping.get(cql_subtype, "interface{}")
 
-        if collection_type.lower() == "map":
-            return f"map[{go_key_type}]{go_value_type}"
-        elif collection_type.lower() == "set":
-            return f"[]{go_key_type}"
+    def split_complex_types(types_string):
+        depth = 0
+        types = []
+        start = 0
+        for i, char in enumerate(types_string):
+            if char == "<":
+                depth += 1
+            elif char == ">":
+                depth -= 1
+            elif char == "," and depth == 0:
+                types.append(types_string[start:i].strip())
+                start = i + 1
+        types.append(types_string[start:].strip())
+        return types
 
-    type_match = complex_type_pattern.match(cql_type)
-    if type_match:
-        return handle_complex_type(type_match)
-
-    return base_type_mapping.get(cql_type, "interface{}")
+    return handle_complex_type(cql_type)
